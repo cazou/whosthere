@@ -1,0 +1,10 @@
+idf_component_register(
+    SRCS
+    "audio_player.c"
+    "main.c"
+    "rtp.c"
+    "udp.c"
+    "wifi.c"
+    INCLUDE_DIRS
+    "."
+)
