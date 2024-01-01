@@ -29,20 +29,30 @@ struct rtp_header
     uint32_t ssrc;
 };
 
-void rtp_init(rtp_t *rtp)
+const int BUF_COUNT = 5;
+const int BUF_SIZE = 1400;
+
+struct rtp_packet
 {
-    rtp->next_len = 0;
+    size_t len;
+    uint8_t *data;
+};
+
+void rtp_init(rtp_t *rtp, uint16_t port)
+{
     rtp->first_packet = 1;
     rtp->last_seq = 0;
+
+    rtp->queue = xQueueCreate(5, sizeof(struct rtp_packet));
+
+    audio_udp_init(&rtp->udp);
+    audio_udp_bind(&rtp->udp, port);
 }
 
-int rtp_push_packet(rtp_t *rtp, uint8_t *data, size_t length)
+static int push_packet(rtp_t *rtp, uint8_t *data, size_t length)
 {
     struct rtp_header *hdr = (struct rtp_header *)data;
     int32_t seq_num;
-
-    if (rtp->next_len)
-        return -EBUSY;
 
     if (hdr->version != 0)
     {
@@ -74,20 +84,66 @@ int rtp_push_packet(rtp_t *rtp, uint8_t *data, size_t length)
 
     ESP_LOGD(TAG, "RTP Packet: v: %u p: %s e: %s seq: %ld", hdr->version, hdr->padding ? "true" : "false", hdr->extension ? "true" : "false", seq_num);
 
-    rtp->next_data = data + RTP_HEADER_LEN;
-    rtp->next_len = length - RTP_HEADER_LEN;
+    // use a queue
+    struct rtp_packet p;
+    p.data = data + RTP_HEADER_LEN;
+    p.len = length - RTP_HEADER_LEN;
+    xQueueSend(rtp->queue, &p, (TickType_t)portMAX_DELAY);
 
     return 0;
 }
-
-uint8_t *rtp_next_data(rtp_t *rtp, size_t *length)
+static void rtp_task(void *pvParameters)
 {
-    if (rtp->next_len == 0)
+    rtp_t *rtp = (rtp_t *)pvParameters;
+    int len;
+
+    ESP_LOGI(TAG, "Starting task");
+
+    uint8_t buf_ring[BUF_COUNT][BUF_SIZE];
+    uint8_t curr_buffer = 0;
+
+    ESP_LOGI(TAG, "Starting loop");
+
+    while ((len = udp_next(&rtp->udp, buf_ring[curr_buffer], BUF_SIZE)) > 0)
+    {
+        int ret = push_packet(rtp, buf_ring[curr_buffer], len);
+        if (ret != 0)
+            continue;
+
+        curr_buffer = (curr_buffer + 1) % BUF_COUNT;
+    }
+    ESP_LOGI(TAG, "Leaving...");
+    vQueueDelete(rtp->queue);
+    vTaskDelete(NULL);
+}
+
+esp_err_t rtp_start(rtp_t *rtp)
+{
+    return xTaskCreate(rtp_task, "rtp", 4096 + (BUF_COUNT * BUF_SIZE) * sizeof(StackType_t), rtp, 5, &rtp->task_handle);
+}
+
+void rtp_stop(rtp_t *rtp)
+{
+    struct rtp_packet p = {0};
+    xQueueSend(rtp->queue, &p, (TickType_t)portMAX_DELAY);
+    udp_stop(&rtp->udp);
+}
+
+uint8_t *rtp_next_packet(rtp_t *rtp, size_t *length)
+{
+    struct rtp_packet p;
+    BaseType_t ret = xQueueReceive(rtp->queue, &p, (TickType_t)portMAX_DELAY);
+    if (ret == errQUEUE_EMPTY)
+    {
+        ESP_LOGE(TAG, "Packet queue receive timed out.");
         return NULL;
+    }
+    else if (ret != pdPASS)
+    {
+        ESP_LOGE(TAG, "Other error");
+        return NULL;
+    }
 
-    *length = rtp->next_len;
-
-    rtp->next_len = 0;
-
-    return rtp->next_data;
+    *length = p.len;
+    return p.data;
 }

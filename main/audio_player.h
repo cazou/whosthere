@@ -14,14 +14,14 @@
 
 #include <driver/dac_continuous.h>
 
-#include "udp.h"
+#include "rtp.h"
 
 typedef struct audio_player
 {
     dac_continuous_handle_t dac_handle;
     QueueHandle_t que;
-    udp_t udp;
     TaskHandle_t task_handle;
+    rtp_t rtp;
 } audio_player_t;
 
 void audio_player_init(audio_player_t *player);

@@ -55,52 +55,22 @@ static void dac_write_data_asynchronously(dac_continuous_handle_t handle, QueueH
     }
 }
 
-#define MIN(a, b) (a) < (b) ? (a) : (b)
-
-static void print_data(char *audio_data, size_t len, int width, int height)
-{
-    int c = MIN(width * height, len);
-    printf("0: ");
-    for (int i = 0; i < c; i++)
-    {
-        if (i != 0 && i % width == 0)
-            printf("\n%d: ", i / width);
-
-        printf("%02x ", audio_data[i]);
-    }
-
-    printf("\n\n");
-}
-
 static void audio_player_task(void *pvParameters)
 {
-    rtp_t rtp;
     audio_player_t *player = pvParameters;
+    uint8_t *buffer;
+    size_t len;
 
-    uint8_t buffer[1500];
-    const size_t buffer_size = sizeof(buffer);
-    int len;
-
-    audio_udp_init(&player->udp);
-    rtp_init(&rtp);
-
-    audio_udp_bind(&player->udp, 5000);
+    rtp_init(&player->rtp, 5000);
+    rtp_start(&player->rtp);
 
     // FIXME: Maybe it should always be enabled
     ESP_ERROR_CHECK(dac_continuous_enable(player->dac_handle));
     ESP_ERROR_CHECK(dac_continuous_start_async_writing(player->dac_handle));
 
-    while ((len = udp_next(&player->udp, buffer, buffer_size)) > 0)
+    while ((buffer = rtp_next_packet(&player->rtp, &len)) != NULL)
     {
-        int ret = rtp_push_packet(&rtp, buffer, len);
-        if (ret == -EBUSY)
-            continue;
-        else if (ret != 0)
-            break;
-
-        uint8_t *audio_data = rtp_next_data(&rtp, (size_t *)&len);
-        // print_data(audio_data, len, 32, 4);
-        dac_write_data_asynchronously(player->dac_handle, player->que, audio_data, len);
+        dac_write_data_asynchronously(player->dac_handle, player->que, buffer, len);
     }
 
     ESP_ERROR_CHECK(dac_continuous_stop_async_writing(player->dac_handle));
@@ -108,7 +78,6 @@ static void audio_player_task(void *pvParameters)
 
     ESP_LOGI(TAG, "Leaving...");
 
-    udp_stop(&player->udp);
     player->task_handle = NULL;
     vTaskDelete(NULL);
 }
@@ -153,5 +122,5 @@ bool audio_player_playing(audio_player_t *player)
 
 void audio_player_stop(audio_player_t *player)
 {
-    udp_stop(&player->udp);
+    rtp_stop(&player->rtp);
 }
