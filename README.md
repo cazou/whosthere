@@ -43,3 +43,52 @@ The audio signal will be rendered on the GPIO25 pin.
 ## MQTT
 
 (TBD)
+
+## Electronic considerations
+
+This is what is considered true for now but needs a lot more investigation.
+
+In the unit station (where this code is running), the speaker is used as both speaker and microphone.
+
+Here is a theory diagram of how the full system is working without the ESP32:
+
+![Theory Diagram](image.png)
+
+### Talking
+
+As microphone, vibrations in the air move the membrane that moves the coil to
+generate a small current.
+
+It is believed that GROUND is coming on one side (See 1: Audio common on the
+theory diagram) and the microphone is generating a small current in the form of
+an analog sound wave.
+
+This current is probably in the range of some mV and the central system amplifies it.
+
+That means that the DAC output needs to be in the correct range to match the
+microphone's. As the DAC is only 8 bits precision, the signal will have to be
+electronically divided to avoid precision loss. The use of a
+[Voltage Divider](https://en.wikipedia.org/wiki/Voltage_divider) should be
+considered.
+
+The actual wireing is not known yet as we would act as a power generator to
+mimic the coil and we only get GROUND. TBD.
+
+### Listening
+
+In this case, the speaker is an actual speaker
+([Estimated at 45 ohms, 24V, aka +/-12V, TBC](https://www.radwell.ca/Buy/MIRCOM/MIRCOM/RPL-SP-200) ).
+
+To be able to make audible sounds, the signal from the microphone outside must
+be amplified and that is the signal we get in the unit station.
+
+This signal amplitude can be reduced with a [Voltage Divider](https://en.wikipedia.org/wiki/Voltage_divider)
+but that is to be tested as well. In this case, Vout would give the correct
+signal between 0 and 3.3v.
+
+#### ADC precision
+
+According to the ESP32 TRM, the higher the voltage, the less precise the is the
+reading.
+That can be solved by increasing the Voltage divider to be in the 0-1V range.
+In the case, the attenuation of 11 dB could be avoided.
