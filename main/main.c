@@ -12,12 +12,20 @@
 #include <esp_task.h>
 
 #include "audio_player.h"
+#include "audio_recorder.h"
 #include "rtp.h"
 #include "udp.h"
 #include "wifi.h"
 
+enum state
+{
+    TALKING_STATE,
+    LISTENING_STATE,
+    IDLE_STATE
+} state;
+
 audio_player_t player;
-// audio_recorder_t recorder;
+audio_recorder_t recorder;
 
 static const char *TAG = "main";
 
@@ -32,26 +40,49 @@ static int run_cmd(int argc, char *argv[])
 
     if (strcmp(cmd, "listen") == 0)
     {
-        ESP_LOGI(TAG, "start listening");
-    }
-    else if (strcmp(cmd, "talk") == 0)
-    {
-        ESP_LOGI(TAG, "start talking");
-
-        if (audio_player_playing(&player))
+        if (state != IDLE_STATE)
         {
-            ESP_LOGE(TAG, "Already in taking mode");
+            ESP_LOGE(TAG, "Already streaming audio. Run stop before");
             return -1;
         }
 
+        ESP_LOGI(TAG, "start listening");
+
+        audio_recorder_init(&recorder);
+        audio_recorder_start(&recorder);
+        state = LISTENING_STATE;
+    }
+    else if (strcmp(cmd, "talk") == 0)
+    {
+        if (state != IDLE_STATE)
+        {
+            ESP_LOGE(TAG, "Already streaming audio. Run stop before");
+            return -1;
+        }
+
+        ESP_LOGI(TAG, "start talking");
+
+        audio_player_init(&player);
         audio_player_start(&player);
+        state = TALKING_STATE;
     }
     else if (strcmp(cmd, "stop") == 0)
     {
         ESP_LOGI(TAG, "stop audio");
 
-        if (audio_player_playing(&player))
+        if (state == TALKING_STATE)
+        {
             audio_player_stop(&player);
+            audio_player_deinit(&player);
+        }
+
+        if (state == LISTENING_STATE)
+        {
+            audio_recorder_stop(&recorder);
+            audio_recorder_deinit(&recorder);
+        }
+
+        state = IDLE_STATE;
     }
     else if (strcmp(cmd, "stats") == 0)
     {
@@ -148,7 +179,8 @@ void app_main(void)
     }
 
     wifi_init();
-    audio_player_init(&player);
+
+    state = IDLE_STATE;
 
     if (start_console() != ESP_OK)
         show_stats = 1;

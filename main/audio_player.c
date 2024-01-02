@@ -6,12 +6,13 @@
 
 #include <inttypes.h>
 #include <string.h>
-#include "esp_check.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "freertos/queue.h"
-#include "driver/dac_continuous.h"
-#include "errno.h"
+#include <sdkconfig.h>
+#include <esp_check.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
+#include <freertos/queue.h>
+#include <driver/dac_continuous.h>
+#include <errno.h>
 
 #include "audio_player.h"
 #include "udp.h"
@@ -61,7 +62,6 @@ static void audio_player_task(void *pvParameters)
     uint8_t *buffer;
     size_t len;
 
-    rtp_init(&player->rtp, 5000);
     rtp_start(&player->rtp);
 
     // FIXME: Maybe it should always be enabled
@@ -107,6 +107,8 @@ void audio_player_init(audio_player_t *player)
     /* Must register the callback if using asynchronous writing */
     ESP_ERROR_CHECK(dac_continuous_register_event_callback(player->dac_handle, &cbs, player->que));
 
+    rtp_init(&player->rtp, 5000, RTP_RECV);
+
     ESP_LOGI(TAG, "Audio player initialized at %d Hz", CONFIG_AUDIO_SAMPLE_RATE);
 }
 
@@ -123,4 +125,11 @@ bool audio_player_playing(audio_player_t *player)
 void audio_player_stop(audio_player_t *player)
 {
     rtp_stop(&player->rtp);
+}
+
+void audio_player_deinit(audio_player_t *player)
+{
+    vQueueDelete(player->que);
+    dac_continuous_del_channels(player->dac_handle);
+    rtp_deinit(&player->rtp);
 }

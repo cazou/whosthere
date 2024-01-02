@@ -1,6 +1,7 @@
 idf_component_register(
     SRCS
     "audio_player.c"
+    "audio_recorder.c"
     "main.c"
     "rtp.c"
     "udp.c"

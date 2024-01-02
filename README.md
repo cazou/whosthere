@@ -30,7 +30,30 @@ The audio signal will be rendered on the GPIO25 pin.
 
 ## Listen
 
-(TBD)
+The Listen function will read data from the analog microphone plugged on the
+GPIO34, pack it in RTP packets and send the packets via UDP to the configured
+IP address on port 5000.
+
+The host receiving the UDP packets can listen to the audio with a Gstreamer pipeline:
+```
+gst-launch-1.0 -v \
+    udpsrc port=5000 caps='\
+        application/x-rtp, \
+        media=(string)audio, \
+        clock-rate=(int)44100, \
+        encoding-name=(string)L8, \
+        encoding-params=(string)1, \
+        channels=(int)1, \
+        payload=(int)96' ! \
+    rtpL8depay ! \
+    autoaudiosink
+```
+
+As can be seen, the audio format is currently the same as the talk function:
+8 bits samples at 44100 Hz.
+
+As the ESP32 ADC has a larger width (9-12 bits) than the DAC (8 bits), this
+might be changed later to support 16 bits audio.
 
 ## Open door
 
@@ -88,7 +111,7 @@ signal between 0 and 3.3v.
 
 #### ADC precision
 
-According to the ESP32 TRM, the higher the voltage, the less precise the is the
+According to the ESP32 TRM, the higher the voltage, the less precise is the
 reading.
 That can be solved by increasing the Voltage divider to be in the 0-1V range.
 In the case, the attenuation of 11 dB could be avoided.

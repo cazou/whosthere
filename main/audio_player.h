@@ -28,3 +28,4 @@ void audio_player_init(audio_player_t *player);
 esp_err_t audio_player_start(audio_player_t *player);
 bool audio_player_playing(audio_player_t *player);
 void audio_player_stop(audio_player_t *player);
+void audio_player_deinit(audio_player_t *player);
