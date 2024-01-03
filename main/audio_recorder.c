@@ -144,6 +144,7 @@ void audio_recorder_stop(audio_recorder_t *recorder)
     uint8_t c = 1;
     recorder->stopping = 1;
     xQueueReceive(recorder->stop_queue, &c, portMAX_DELAY);
+    rtp_stop(&recorder->rtp);
 
     vQueueDelete(recorder->stop_queue);
 }
@@ -151,4 +152,5 @@ void audio_recorder_stop(audio_recorder_t *recorder)
 void audio_recorder_deinit(audio_recorder_t *recorder)
 {
     ESP_ERROR_CHECK(adc_continuous_deinit(recorder->adc_handle));
+    rtp_deinit(&recorder->rtp);
 }

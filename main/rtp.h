@@ -29,6 +29,7 @@ typedef struct rtp
     int32_t last_seq;
     uint8_t first_packet;
     uint64_t sent_bytes;
+    bool stop_requested;
     udp_t udp;
 } rtp_t;
 

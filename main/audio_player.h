@@ -20,6 +20,7 @@ typedef struct audio_player
 {
     dac_continuous_handle_t dac_handle;
     QueueHandle_t que;
+    QueueHandle_t stop_queue;
     TaskHandle_t task_handle;
     rtp_t rtp;
 } audio_player_t;

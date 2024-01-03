@@ -35,9 +35,15 @@ int audio_udp_init(udp_t *udp, uint16_t port)
         return sock;
     }
 
+    // Set timeout
+    struct timeval timeout;
+    timeout.tv_sec = 0;
+    timeout.tv_usec = 20000;
+    setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof timeout);
+
     udp->sock = sock;
 
-    ESP_LOGI(TAG, "Socket created");
+    ESP_LOGI(TAG, "Socket created: %d", sock);
 
     return 0;
 }
@@ -70,32 +76,10 @@ int audio_udp_bind(udp_t *udp)
 
 int udp_next(udp_t *udp, uint8_t *data, size_t max_size)
 {
-    // char addr_str[128];
     struct sockaddr_storage source_addr;
     socklen_t socklen = sizeof(source_addr);
 
-    int len = recvfrom(udp->sock, data, max_size, 0, (struct sockaddr *)&source_addr, &socklen);
-
-    if (len < 0)
-    {
-        ESP_LOGE(TAG, "recvfrom failed: errno %d", errno);
-    }
-    else
-    {
-        // Get the sender's ip address as string
-        /*if (source_addr.ss_family == PF_INET)
-        {
-            inet_ntoa_r(((struct sockaddr_in *)&source_addr)->sin_addr, addr_str, sizeof(addr_str) - 1);
-        }
-        else if (source_addr.ss_family == PF_INET6)
-        {
-            inet6_ntoa_r(((struct sockaddr_in6 *)&source_addr)->sin6_addr, addr_str, sizeof(addr_str) - 1);
-        }*/
-
-        // ESP_LOGI(TAG, "Received %d bytes from %s", len, addr_str);
-    }
-
-    return len;
+    return recvfrom(udp->sock, data, max_size, 0, (struct sockaddr *)&source_addr, &socklen);
 }
 
 int udp_send_bytes(udp_t *udp, const uint8_t *data, size_t size)

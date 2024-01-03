@@ -62,8 +62,6 @@ static void audio_player_task(void *pvParameters)
     uint8_t *buffer;
     size_t len;
 
-    rtp_start(&player->rtp);
-
     // FIXME: Maybe it should always be enabled
     ESP_ERROR_CHECK(dac_continuous_enable(player->dac_handle));
     ESP_ERROR_CHECK(dac_continuous_start_async_writing(player->dac_handle));
@@ -77,6 +75,9 @@ static void audio_player_task(void *pvParameters)
     ESP_ERROR_CHECK(dac_continuous_disable(player->dac_handle));
 
     ESP_LOGI(TAG, "Leaving...");
+
+    uint8_t c = 1;
+    xQueueSend(player->stop_queue, &c, 0);
 
     player->task_handle = NULL;
     vTaskDelete(NULL);
@@ -114,6 +115,8 @@ void audio_player_init(audio_player_t *player)
 
 esp_err_t audio_player_start(audio_player_t *player)
 {
+    player->stop_queue = xQueueCreate(1, sizeof(uint8_t));
+    rtp_start(&player->rtp);
     return xTaskCreate(audio_player_task, "audio_player", 4096, player, 5, &player->task_handle);
 }
 
@@ -125,6 +128,9 @@ bool audio_player_playing(audio_player_t *player)
 void audio_player_stop(audio_player_t *player)
 {
     rtp_stop(&player->rtp);
+    uint8_t c;
+    xQueueReceive(player->stop_queue, &c, portMAX_DELAY);
+    vQueueDelete(player->stop_queue);
 }
 
 void audio_player_deinit(audio_player_t *player)

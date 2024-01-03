@@ -172,13 +172,25 @@ static void rtp_recv_task(void *pvParameters)
 
     while ((len = udp_next(&rtp->udp, buf_ring[curr_buffer], BUF_SIZE)) > 0)
     {
+        if (rtp->stop_requested)
+            break;
+
+        if (len < 0 && errno == -EAGAIN)
+        {
+            // Timed out
+            continue;
+        }
         int ret = push_packet(rtp, buf_ring[curr_buffer], len);
         if (ret != 0)
             continue;
 
         curr_buffer = (curr_buffer + 1) % BUF_COUNT;
     }
+
     ESP_LOGI(TAG, "Leaving...");
+
+    rtp->task_handle = NULL;
+    vTaskDelete(NULL);
 }
 
 static void rtp_send_task(void *pvParameters)
@@ -217,6 +229,8 @@ void rtp_push_data(rtp_t *rtp, const uint8_t *data, size_t length)
 
 esp_err_t rtp_start(rtp_t *rtp)
 {
+    rtp->stop_requested = false;
+
     if (rtp->direction == RTP_RECV)
         return xTaskCreate(rtp_recv_task, "rtp_recv", 4096 + (BUF_COUNT * BUF_SIZE) * sizeof(StackType_t), rtp, 5, &rtp->task_handle);
     else
@@ -229,10 +243,14 @@ void rtp_stop(rtp_t *rtp)
     {
         struct rtp_packet p = {0};
         xQueueSend(rtp->queue, &p, (TickType_t)portMAX_DELAY);
+        rtp->stop_requested = true;
+    }
+    else
+    {
+        vTaskDelete(rtp->task_handle);
+        rtp->task_handle = NULL;
     }
 
-    vTaskDelete(rtp->task_handle);
-    rtp->task_handle = NULL;
     udp_stop(&rtp->udp);
 }
 

@@ -88,6 +88,34 @@ static int run_cmd(int argc, char *argv[])
     {
         print_stats();
     }
+    else if (strcmp(cmd, "memtest") == 0)
+    {
+        const TickType_t xDelay = 100 / portTICK_PERIOD_MS;
+        unsigned int count = 0;
+
+        while (1)
+        {
+            ESP_LOGI(TAG, "--------------------- LOOP %u", count++);
+            ESP_LOGI(TAG, "--------------------- start recorder");
+            audio_recorder_init(&recorder);
+            audio_recorder_start(&recorder);
+            vTaskDelay(xDelay);
+            ESP_LOGI(TAG, "--------------------- stop  recorder");
+            audio_recorder_stop(&recorder);
+            audio_recorder_deinit(&recorder);
+
+            ESP_LOGI(TAG, "--------------------- start player");
+            audio_player_init(&player);
+            audio_player_start(&player);
+            vTaskDelay(xDelay);
+            ESP_LOGI(TAG, "--------------------- stop  player");
+            audio_player_stop(&player);
+            audio_player_deinit(&player);
+
+            print_stats();
+        }
+    }
+
     return 0;
 }
 
@@ -109,6 +137,11 @@ static esp_console_cmd_t stop_cmd = {
 static esp_console_cmd_t stats_cmd = {
     .command = "stats",
     .help = "Show stats",
+    .func = run_cmd,
+};
+static esp_console_cmd_t memtest_cmd = {
+    .command = "memtest",
+    .help = "Test Memory",
     .func = run_cmd,
 };
 
@@ -148,6 +181,12 @@ static esp_err_t start_console(void)
         goto deinit_console;
     }
     err = esp_console_cmd_register(&stats_cmd);
+    if (err != ESP_OK)
+    {
+        ESP_LOGE(TAG, "Cannot register console command...");
+        goto deinit_console;
+    }
+    err = esp_console_cmd_register(&memtest_cmd);
     if (err != ESP_OK)
     {
         ESP_LOGE(TAG, "Cannot register console command...");
