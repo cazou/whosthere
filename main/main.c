@@ -213,7 +213,7 @@ void app_main(void)
     esp_err_t ret = esp_event_loop_create_default();
     if (ret != ESP_OK)
     {
-        ESP_LOGI(TAG, "Failed to create task loop");
+        ESP_LOGE(TAG, "Failed to create task loop");
         return;
     }
 

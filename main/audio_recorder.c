@@ -57,9 +57,9 @@ void audio_recorder_init(audio_recorder_t *recorder)
     adc_pattern.unit = ADC_UNIT_1;
     adc_pattern.bit_width = ADC_BIT_WIDTH;
 
-    ESP_LOGI(TAG, "adc_pattern.atten is :%" PRIx8, adc_pattern.atten);
-    ESP_LOGI(TAG, "adc_pattern.channel is :%" PRIx8, adc_pattern.channel);
-    ESP_LOGI(TAG, "adc_pattern.unit is :%" PRIx8, adc_pattern.unit);
+    ESP_LOGD(TAG, "adc_pattern.atten is :%" PRIx8, adc_pattern.atten);
+    ESP_LOGD(TAG, "adc_pattern.channel is :%" PRIx8, adc_pattern.channel);
+    ESP_LOGD(TAG, "adc_pattern.unit is :%" PRIx8, adc_pattern.unit);
 
     dig_cfg.adc_pattern = &adc_pattern;
     ESP_ERROR_CHECK(adc_continuous_config(recorder->adc_handle, &dig_cfg));
@@ -93,7 +93,6 @@ void audio_recorder_task(void *data)
             break;
         }
 
-        // ESP_LOGI(TAG, "ret: %d, ret_num: %" PRIu32 " bytes", ret, ret_num);
         if (ret == ESP_OK)
         {
             for (int i = 0; i < ret_num; i += SOC_ADC_DIGI_RESULT_BYTES)

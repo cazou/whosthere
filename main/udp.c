@@ -43,7 +43,7 @@ int audio_udp_init(udp_t *udp, uint16_t port)
 
     udp->sock = sock;
 
-    ESP_LOGI(TAG, "Socket created: %d", sock);
+    ESP_LOGD(TAG, "Socket created: %d", sock);
 
     return 0;
 }
@@ -52,7 +52,7 @@ void udp_stop(udp_t *udp)
 {
     if (udp->sock > 0)
     {
-        ESP_LOGI(TAG, "Shutting down socket");
+        ESP_LOGD(TAG, "Shutting down socket");
         shutdown(udp->sock, 0);
         close(udp->sock);
     }
@@ -69,7 +69,7 @@ int audio_udp_bind(udp_t *udp)
         return err;
     }
 
-    ESP_LOGI(TAG, "Socket bound, port %d", udp->dest_addr.sin_port);
+    ESP_LOGD(TAG, "Socket bound, port %d", udp->dest_addr.sin_port);
 
     return 0;
 }

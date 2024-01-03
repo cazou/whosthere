@@ -164,7 +164,7 @@ static void rtp_recv_task(void *pvParameters)
     rtp_t *rtp = (rtp_t *)pvParameters;
     int len;
 
-    ESP_LOGI(TAG, "Starting recv task");
+    ESP_LOGD(TAG, "Starting recv task");
 
     uint8_t buf_ring[BUF_COUNT][BUF_SIZE];
     // memset(buf_ring, 0, BUF_COUNT * BUF_SIZE);
@@ -187,7 +187,7 @@ static void rtp_recv_task(void *pvParameters)
         curr_buffer = (curr_buffer + 1) % BUF_COUNT;
     }
 
-    ESP_LOGI(TAG, "Leaving...");
+    ESP_LOGD(TAG, "Leaving...");
 
     rtp->task_handle = NULL;
     vTaskDelete(NULL);
@@ -200,7 +200,7 @@ static void rtp_send_task(void *pvParameters)
     void *item = NULL;
     uint8_t rtp_data[MAX_PACKET_LEN];
 
-    ESP_LOGI(TAG, "Starting send task");
+    ESP_LOGD(TAG, "Starting send task");
 
     while ((item = xRingbufferReceive(rtp->ring_buffer, &len, portMAX_DELAY)) != NULL)
     {
@@ -219,7 +219,7 @@ static void rtp_send_task(void *pvParameters)
         vRingbufferReturnItem(rtp->ring_buffer, item);
     }
 
-    ESP_LOGI(TAG, "Leaving...");
+    ESP_LOGD(TAG, "Leaving...");
 }
 
 void rtp_push_data(rtp_t *rtp, const uint8_t *data, size_t length)
