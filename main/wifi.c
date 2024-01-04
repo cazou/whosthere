@@ -66,7 +66,7 @@ static void event_handler(void *arg, esp_event_base_t event_base,
     }
     else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED)
     {
-        if (s_retry_num < CONFIG_ESP_MAXIMUM_RETRY)
+        if (s_retry_num < 10000)
         {
             esp_wifi_connect();
             s_retry_num++;

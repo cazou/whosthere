@@ -3,6 +3,7 @@ idf_component_register(
     "audio_player.c"
     "audio_recorder.c"
     "main.c"
+    "media_controller.c"
     "rtp.c"
     "udp.c"
     "wifi.c"

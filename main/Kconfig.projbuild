@@ -9,18 +9,38 @@ menu "Audio Configuration"
 
 endmenu
 
+menu "MQTT configuration"
+    config MQTT_BROKER_ADDRESS
+        string "MQTT broker address"
+        default ""
+        help
+            Address of the MQTT broker. Can be an ip or DNS address.
+    
+    config MQTT_USERNAME
+        string "MQTT Username"
+        default "mqtt"
+        help
+            MQTT username to connect to the broker
+        
+    config MQTT_PASSWORD
+        string "MQTT Password"
+        default "mqtt"
+        help
+            MQTT password to connect to the broker
+endmenu
+
 menu "WiFi configuration"
     config ESP_WIFI_SSID
         string "WiFi SSID"
         default "myssid"
         help
-            SSID (network name) for the example to connect to.
+            SSID (network name) to connect to.
 
     config ESP_WIFI_PASSWORD
         string "WiFi Password"
         default "mypassword"
         help
-            WiFi password (WPA or WPA2) for the example to use.
+            WiFi password (WPA or WPA2) to use.
 
     choice ESP_WIFI_SAE_MODE
         prompt "WPA3 SAE mode selection"
